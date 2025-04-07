@@ -2,6 +2,7 @@
 using ApiCatalogo.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace ApiCatalogo.Controllers
 {
@@ -18,64 +19,102 @@ namespace ApiCatalogo.Controllers
         [HttpGet]
         public ActionResult<IEnumerable<Produto>> Get()
         {
-            IEnumerable<Produto> produtos = _context.Produtos.ToList();
-
-            if(produtos is null)
+            try
             {
-                return NotFound();
-            }
+                IEnumerable<Produto> produtos = _context.Produtos.AsNoTracking().ToList();
 
-            return Ok(produtos);
+                if (produtos is null)
+                {
+                    return NotFound();
+                }
+
+                return Ok(produtos);
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "Ocorreu um erro durante a solicitação.");
+            }            
         }
 
         [HttpGet("{id:int}", Name = "ObterProduto")]
         public ActionResult<Produto> Get(int id)
         {
-            Produto? produto = _context.Produtos.FirstOrDefault(p => p.ProdutoId == id);
+            try
+            {
+                Produto? produto = _context.Produtos.FirstOrDefault(p => p.ProdutoId == id);
 
-            if (produto is null) { 
-                return NotFound();
+                if (produto is null)
+                {
+                    return NotFound();
+                }
+                return Ok(produto);
             }
-            return Ok(produto);
+            catch (Exception)
+            {
+                
+            }
+            
         }
 
         [HttpPost]
         public ActionResult Post(Produto produto)
         {
-            _context.Add(produto);
-            _context.SaveChanges();
+            try
+            {
+                _context.Add(produto);
+                _context.SaveChanges();
 
-            return new CreatedAtRouteResult("ObterProduto", new { id = produto.ProdutoId }, produto);
+                return new CreatedAtRouteResult("ObterProduto", new { id = produto.ProdutoId }, produto);
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "Ocorreu um erro durante a solicitação.");
+            }
+            
         }
 
         [HttpPut("{id:int}")]
         public ActionResult Put(int id, Produto produto)
         {
-            if(id != produto.ProdutoId)
+            try
             {
-                return BadRequest();
+                if (id != produto.ProdutoId)
+                {
+                    return BadRequest();
+                }
+
+                _context.Entry(produto).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
+                _context.SaveChanges();
+
+                return Ok(produto);
             }
-
-            _context.Entry(produto).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
-            _context.SaveChanges();
-
-            return Ok(produto);
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "Ocorreu um erro durante a solicitação.");
+            }
         }
 
         [HttpDelete("{id:int}")]
         public ActionResult Delete(int id)
         {
-            Produto? produto = _context.Produtos.FirstOrDefault(p => p.ProdutoId == id);
-
-            if (produto is null) 
+            try
             {
-                return NotFound();
+                Produto? produto = _context.Produtos.FirstOrDefault(p => p.ProdutoId == id);
+
+                if (produto is null)
+                {
+                    return NotFound();
+                }
+
+                _context.Remove(produto);
+                _context.SaveChanges();
+
+                return Ok(produto);
             }
-
-            _context.Remove(produto);
-            _context.SaveChanges();
-
-            return Ok(produto);
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "Ocorreu um erro durante a solicitação.");
+            }
         }
     }
 }
